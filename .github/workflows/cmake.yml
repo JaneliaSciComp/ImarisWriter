@@ -155,7 +155,10 @@ jobs:
       name: ImarisWriter-${{ runner.os }} Artifact
       with:
         name: ImarisWriter-${{ runner.os }}
-        path: ${{runner.workspace}}/install
+        path: |
+          ${{runner.workspace}}/build/include
+          ${{runner.workspace}}/build/lib
+          ${{runner.workspace}}/build/bin
  
     - uses: actions/upload-artifact@v2
       name: DLL Artifact
