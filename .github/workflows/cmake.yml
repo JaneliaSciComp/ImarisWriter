@@ -167,7 +167,7 @@ jobs:
       run: |
         shopt -s globstar
         mkdir dlls
-        cp install/**/bpImarisWriter96.dll /dlls
+        cp build/bin/bpImarisWriter96.dll dlls
         cp zlib/install/**/zlib.dll dlls
         cp hdf5/install/**/hdf5.dll dlls
         ls dlls
