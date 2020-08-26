@@ -45,26 +45,36 @@ jobs:
         cmake -E make_directory ${{runner.workspace}}/zlib/build
         cmake -E make_directory ${{runner.workspace}}/hdf5/build
         cmake -E make_directory ${{runner.workspace}}/lz4/build
+        cmake -E make_directory ${{runner.workspace}}/zlib/install
+        cmake -E make_directory ${{runner.workspace}}/hdf5/install
+        cmake -E make_directory ${{runner.workspace}}/lz4/install
            
     - name: Build zlib
       shell: bash
       working-directory: ${{runner.workspace}}/zlib/build
       run: |
-        cmake $GITHUB_WORKSPACE/zlib -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+        cmake $GITHUB_WORKSPACE/zlib -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/zlib/install
         cmake --build . --config $BUILD_TYPE --target install
         
     - name: Build LZ4
       shell: bash
       working-directory: ${{runner.workspace}}/lz4/build
       run: |
-        cmake $GITHUB_WORKSPACE/lz4/build/cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STATIC_LIBS=ON
+        cmake $GITHUB_WORKSPACE/lz4/build/cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/lz4/install -DBUILD_STATIC_LIBS=ON
         cmake --build . --config $BUILD_TYPE --target install
+        
+    - name: Cache HDF5
+      uses: actions/cache@v2
+      id: cache
+      with:
+        path: ${{runner.workspace}}/hdf5/install
+        key: ${{ runner.os }}-hdf5-${{ hashFiles('hdf5/README.txt') }}
         
     - name: Build HDF5
       shell: bash
       working-directory: ${{runner.workspace}}/hdf5/build
       run: |
-        cmake $GITHUB_WORKSPACE/hdf5 -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+        cmake $GITHUB_WORKSPACE/hdf5 -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/hdf5/install
         cmake --build . --config $BUILD_TYPE --target install
 
     - name: Configure CMake
@@ -75,7 +85,7 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DHDF5_ROOT=${{runner.workspace}}/hdf5/build/$BUILD_TYPE -DZLIB_ROOT=${{runner.workspace}}/zlib/build/$BUILD_TYPE -DLZ4_ROOT=${{runner.workspace}}/lz4/build/$BUILD_TYPE
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DHDF5_ROOT=${{runner.workspace}}/hdf5/install -DZLIB_ROOT=${{runner.workspace}}/zlib/install -DLZ4_ROOT=${{runner.workspace}}/lz4/install
 
     - name: Build
       working-directory: ${{runner.workspace}}/build
