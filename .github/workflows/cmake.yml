@@ -23,6 +23,12 @@ jobs:
         repository: madler/zlib
         path: zlib
         ref: v1.2.11
+        
+    - name: Checkout LZ4 repository
+      uses: actions/checkout@v2
+      with:
+        repository: lz4/lz4
+        path: lz4
       
     - name: Checkout HDF5 repository
       uses: actions/checkout@v2
@@ -30,12 +36,6 @@ jobs:
         repository: HDFGroup/hdf5
         path: hdf5
         ref: hdf5-1_12_0
-        
-    - name: Checkout LZ4 repository
-      uses: actions/checkout@v2
-      with:
-        repository: lz4/lz4
-        path: lz4
 
     - name: Create Build Environment
       # Some projects don't allow in-source building, so create a separate build directory
@@ -53,18 +53,18 @@ jobs:
         cmake $GITHUB_WORKSPACE/zlib -DCMAKE_BUILD_TYPE=$BUILD_TYPE
         cmake --build . --config $BUILD_TYPE --target install
         
+    - name: Build LZ4
+      shell: bash
+      working-directory: $GITHUB_WORKSPACE/lz4
+      run: |
+        make
+        make install
+        
     - name: Build HDF5
       shell: bash
       working-directory: ${{runner.workspace}}/hdf5/build
       run: |
         cmake $GITHUB_WORKSPACE/hdf5 -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-        cmake --build . --config $BUILD_TYPE --target install
-        
-    - name: Build LZ4
-      shell: bash
-      working-directory: ${{runner.workspace}}/lz4/build
-      run: |
-        cmake $GITHUB_WORKSPACE/lz4 -DCMAKE_BUILD_TYPE=$BUILD_TYPE
         cmake --build . --config $BUILD_TYPE --target install
 
     - name: Configure CMake
