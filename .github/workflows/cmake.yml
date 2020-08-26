@@ -55,10 +55,10 @@ jobs:
         
     - name: Build LZ4
       shell: bash
-      working-directory: $GITHUB_WORKSPACE/lz4
+      working-directory: ${{runner.workspace}}/lz4/build
       run: |
-        make
-        make install
+        cmake $GITHUB_WORKSPACE/lz4/build/cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+        cmake --build . --config $BUILD_TYPE --target install
         
     - name: Build HDF5
       shell: bash
