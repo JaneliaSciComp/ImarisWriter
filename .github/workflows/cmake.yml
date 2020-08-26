@@ -114,7 +114,7 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DHDF5_ROOT="../hdf5/install" -DZLIB_ROOT="../zlib/install" -DLZ4_ROOT="../lz4/install" -DCMAKE_INSTALL_PREFIX=-DCMAKE_INSTALL_PREFIX="../install"
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DHDF5_ROOT="../hdf5/install" -DZLIB_ROOT="../zlib/install" -DLZ4_ROOT="../lz4/install" -DCMAKE_INSTALL_PREFIX="../install"
 
     - name: Build
       working-directory: ${{runner.workspace}}/build
@@ -154,7 +154,27 @@ jobs:
         path: ${{runner.workspace}}/install
  
     - uses: actions/upload-artifact@v2
+      name: DLL Artifact
       if: runner.os == 'Windows'
       with:
         name: DLLs-${{ runner.os }}
         path: ${{runner.workspace}}/**/*.dll
+        
+    - name: Copy Minimal DLLs to One Folder
+      if: runner.os == 'Windows'
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: |
+        shopt -s globstar
+        mkdir dlls
+        cp install/**/bpImarisWriter96.dll /dlls
+        cp zlib/install/**/zlib.dll dlls
+        cp hdf5/install/**/hdf5.dll dlls
+        ls dlls
+        
+    - uses: actions/upload-artifact@v2
+      name: Minimal DLL Artifact
+      if: runner.os == 'Windows'
+      with:
+        name: Minimal_DLLs-${{ runner.os }}
+        path: ${{runner.workspace}}/dlls
