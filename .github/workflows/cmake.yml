@@ -57,7 +57,7 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}/lz4/build
       run: |
-        cmake $GITHUB_WORKSPACE/lz4/build/cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+        cmake $GITHUB_WORKSPACE/lz4/build/cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STATIC_LIBS=ON
         cmake --build . --config $BUILD_TYPE --target install
         
     - name: Build HDF5
