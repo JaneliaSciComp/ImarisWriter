@@ -66,7 +66,7 @@ jobs:
       id: cache-zlib-install
       with:
         path: ${{runner.workspace}}/zlib/install
-        key: ${{ runner.os }}-zlib-${{ steps.dephashes.output.zlib }}
+        key: ${{ runner.os }}-zlib-${{ steps.dephashes.outputs.zlib }}
            
     - name: Build zlib
       if: steps.cache-zlib-install.outputs.cache-hit != 'true'
@@ -81,7 +81,7 @@ jobs:
       id: cache-lz4-install
       with:
         path: ${{runner.workspace}}/lz4/install
-        key: ${{ runner.os }}-lz4-${{ steps.dephashes.output.lz4 }}
+        key: ${{ runner.os }}-lz4-${{ steps.dephashes.outputs.lz4 }}
 
     - name: Build LZ4
       if: steps.cache-lz4-install.outputs.cache-hit != 'true'
@@ -96,7 +96,7 @@ jobs:
       id: cache-hdf5-install
       with:
         path: ${{runner.workspace}}/hdf5/install
-        key: ${{ runner.os }}-hdf5-${{ steps.dephashes.output.hdf5 }}
+        key: ${{ runner.os }}-hdf5-${{ steps.dephashes.outputs.hdf5 }}
         
     - name: Build HDF5
       if: steps.cache-hdf5-install.outputs.cache-hit != 'true'
