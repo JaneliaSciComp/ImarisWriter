@@ -36,6 +36,16 @@ jobs:
         repository: HDFGroup/hdf5
         path: hdf5
         ref: hdf5-1_12_0
+    
+    - name: Dependency Git Hashes
+      id: dephashes
+      run: |
+        cd $GITHUB_WORKSPACE/zlib
+        echo "::set-output name=zlib::$(git rev-parse HEAD)"
+        cd $GITHUB_WORKSPACE/lz4
+        echo "::set-output name=lz4::$(git rev-parse HEAD)"
+        cd $GITHUB_WORKSPACE/hdf5
+        echo "::set-output name=hdf5::$(git rev-parse HEAD)"
 
     - name: Create Build Environment
       # Some projects don't allow in-source building, so create a separate build directory
@@ -49,15 +59,31 @@ jobs:
         cmake -E make_directory ${{runner.workspace}}/zlib/install
         cmake -E make_directory ${{runner.workspace}}/hdf5/install
         cmake -E make_directory ${{runner.workspace}}/lz4/install
+        
+    - name: Cache ZLIB
+      uses: actions/cache@v2
+      id: cache-zlib-install
+      with:
+        path: ${{runner.workspace}}/zlib/install
+        key: ${{ runner.os }}-zlib-${{ steps.dephashes.output.zlib }}
            
     - name: Build zlib
+      if: steps.cache-zlib-install.outputs.cache-hit != 'true'
       shell: bash
       working-directory: ${{runner.workspace}}/zlib/build
       run: |
         cmake $GITHUB_WORKSPACE/zlib -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX="../install"
         cmake --build . --config $BUILD_TYPE --target install
-       
+
+    - name: Cache LZ4
+      uses: actions/cache@v2
+      id: cache-lz4-install
+      with:
+        path: ${{runner.workspace}}/lz4/install
+        key: ${{ runner.os }}-lz4-${{ steps.dephashes.output.lz4 }}
+
     - name: Build LZ4
+      if: steps.cache-lz4-install.outputs.cache-hit != 'true'
       shell: bash
       working-directory: ${{runner.workspace}}/lz4/build
       run: |
@@ -66,13 +92,13 @@ jobs:
         
     - name: Cache HDF5
       uses: actions/cache@v2
-      id: cache-hdf5
+      id: cache-hdf5-install
       with:
         path: ${{runner.workspace}}/hdf5/install
-        key: ${{ runner.os }}-hdf5-${{ hashFiles('hdf5/README.txt') }}
+        key: ${{ runner.os }}-hdf5-${{ steps.dephashes.output.hdf5 }}
         
     - name: Build HDF5
-      # if: steps.cache-hdf5.outputs.cache-hit != 'true'
+      if: steps.cache-hdf5-install.outputs.cache-hit != 'true'
       shell: bash
       working-directory: ${{runner.workspace}}/hdf5/build
       run: |
