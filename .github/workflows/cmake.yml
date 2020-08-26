@@ -39,6 +39,7 @@ jobs:
     
     - name: Dependency Git Hashes
       id: dephashes
+      shell: bash
       run: |
         cd $GITHUB_WORKSPACE/zlib
         echo "::set-output name=zlib::$(git rev-parse HEAD)"
