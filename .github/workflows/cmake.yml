@@ -130,26 +130,31 @@ jobs:
       run: ctest -C $BUILD_TYPE
       
     - uses: actions/upload-artifact@v2
+      name: ZLIB-${{ runner.os }} Artifact
       with:
-        name: ZLIB
-        path: ${{runner.workspace}}/zlib/build
+        name: ZLIB-${{ runner.os }}
+        path: ${{runner.workspace}}/zlib/install
 
     - uses: actions/upload-artifact@v2
+      name: HDF5-${{ runner.os }} Artifact
       with:
-        name: HDF5
-        path: ${{runner.workspace}}/hdf5/build
+        name: HDF5-${{ runner.os }}
+        path: ${{runner.workspace}}/hdf5/install
         
     - uses: actions/upload-artifact@v2
+      name: LZ4-${{ runner.os }} Artifact
       with:
-        name: LZ4
-        path: ${{runner.workspace}}/lz4/build
+        name: LZ4-${{ runner.os }}
+        path: ${{runner.workspace}}/lz4/install
         
     - uses: actions/upload-artifact@v2
+      name: ImarisWriter-${{ runner.os }} Artifact
       with:
-        name: ImarisWriter
-        path: ${{runner.workspace}}/build
+        name: ImarisWriter-${{ runner.os }}
+        path: ${{runner.workspace}}/install
  
     - uses: actions/upload-artifact@v2
+      if: runner.os == 'Windows'
       with:
-        name: DLLs
+        name: DLLs-${{ runner.os }}
         path: ${{runner.workspace}}/**/*.dll
