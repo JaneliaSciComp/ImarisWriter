@@ -1,0 +1,187 @@
+name: CMake
+
+on: [pull_request]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally
+    # well on Windows or Mac.  You can convert this to a matrix build if you need
+    # cross-platform coverage.
+    # See: https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#configuring-a-build-matrix
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-18.04, ubuntu-20.04]
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Checkout zlib repository
+      uses: actions/checkout@v2
+      with:
+        repository: madler/zlib
+        path: zlib
+        ref: v1.2.11
+        
+    - name: Checkout LZ4 repository
+      uses: actions/checkout@v2
+      with:
+        repository: lz4/lz4
+        path: lz4
+      
+    - name: Checkout HDF5 repository
+      uses: actions/checkout@v2
+      with:
+        repository: HDFGroup/hdf5
+        path: hdf5
+        ref: hdf5-1_12_0
+    
+    - name: Dependency Git Hashes
+      id: dephashes
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/zlib
+        echo "::set-output name=zlib::$(git rev-parse HEAD)"
+        cd $GITHUB_WORKSPACE/lz4
+        echo "::set-output name=lz4::$(git rev-parse HEAD)"
+        cd $GITHUB_WORKSPACE/hdf5
+        echo "::set-output name=hdf5::$(git rev-parse HEAD)"
+
+    - name: Create Build Environment
+      # Some projects don't allow in-source building, so create a separate build directory
+      # We'll use this as our working directory for all subsequent commands
+      run: |
+        cmake -E make_directory ${{runner.workspace}}/build
+        cmake -E make_directory ${{runner.workspace}}/zlib/build
+        cmake -E make_directory ${{runner.workspace}}/hdf5/build
+        cmake -E make_directory ${{runner.workspace}}/lz4/build
+        cmake -E make_directory ${{runner.workspace}}/install
+        cmake -E make_directory ${{runner.workspace}}/zlib/install
+        cmake -E make_directory ${{runner.workspace}}/hdf5/install
+        cmake -E make_directory ${{runner.workspace}}/lz4/install
+        
+    - name: Cache ZLIB
+      uses: actions/cache@v2
+      id: cache-zlib-install
+      with:
+        path: ${{runner.workspace}}/zlib/install
+        key: ${{ runner.os }}-zlib-${{ steps.dephashes.outputs.zlib }}
+           
+    - name: Build zlib
+      if: steps.cache-zlib-install.outputs.cache-hit != 'true'
+      shell: bash
+      working-directory: ${{runner.workspace}}/zlib/build
+      run: |
+        cmake $GITHUB_WORKSPACE/zlib -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX="../install"
+        cmake --build . --config $BUILD_TYPE --target install
+
+    - name: Cache LZ4
+      uses: actions/cache@v2
+      id: cache-lz4-install
+      with:
+        path: ${{runner.workspace}}/lz4/install
+        key: ${{ runner.os }}-lz4-${{ steps.dephashes.outputs.lz4 }}
+
+    - name: Build LZ4
+      if: steps.cache-lz4-install.outputs.cache-hit != 'true'
+      shell: bash
+      working-directory: ${{runner.workspace}}/lz4/build
+      run: |
+        cmake $GITHUB_WORKSPACE/lz4/build/cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STATIC_LIBS=ON -DCMAKE_INSTALL_PREFIX="../install"
+        cmake --build . --config $BUILD_TYPE --target install
+        
+    - name: Cache HDF5
+      uses: actions/cache@v2
+      id: cache-hdf5-install
+      with:
+        path: ${{runner.workspace}}/hdf5/install
+        key: ${{ runner.os }}-hdf5-${{ steps.dephashes.outputs.hdf5 }}
+        
+    - name: Build HDF5
+      if: steps.cache-hdf5-install.outputs.cache-hit != 'true'
+      shell: bash
+      working-directory: ${{runner.workspace}}/hdf5/build
+      run: |
+        cmake $GITHUB_WORKSPACE/hdf5 -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS:BOOL=ON -DBUILD_TESTING:BOOL=OFF -DHDF5_BUILD_TOOLS:BOOL=OFF -DHDF5_BUILD_EXAMPLES:BOOL=OFF -DHDF5_BUILD_CPP_LIB:BOOL=OFF -DHDF5_BUILD_HL_LIB=OFF -DHDF5_BUILD_WITH_INSTALL_NAME=ON -DCMAKE_INSTALL_PREFIX="../install"
+        cmake --build . --config $BUILD_TYPE --target install
+
+    - name: Configure CMake
+      # Use a bash shell so we can use the same syntax for environment variable
+      # access regardless of the host operating system
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      # Note the current convention is to use the -S and -B options here to specify source 
+      # and build directories, but this is only available with CMake 3.13 and higher.  
+      # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DHDF5_ROOT="../hdf5/install" -DZLIB_ROOT="../zlib/install" -DLZ4_ROOT="../lz4/install" -DCMAKE_INSTALL_PREFIX="../install"
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      # Execute the build.  You can specify a specific target with "--target <NAME>"
+      run: cmake --build . --config $BUILD_TYPE --target install
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      # Execute tests defined by the CMake configuration.  
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      run: ctest -C $BUILD_TYPE
+      
+    - uses: actions/upload-artifact@v2
+      name: ZLIB-${{ runner.os }} Artifact
+      with:
+        name: ZLIB-${{ runner.os }}
+        path: ${{runner.workspace}}/zlib/install
+
+    - uses: actions/upload-artifact@v2
+      name: HDF5-${{ runner.os }} Artifact
+      with:
+        name: HDF5-${{ runner.os }}
+        path: ${{runner.workspace}}/hdf5/install
+        
+    - uses: actions/upload-artifact@v2
+      name: LZ4-${{ runner.os }} Artifact
+      with:
+        name: LZ4-${{ runner.os }}
+        path: ${{runner.workspace}}/lz4/install
+        
+    - uses: actions/upload-artifact@v2
+      name: ImarisWriter-${{ runner.os }} Artifact
+      with:
+        name: ImarisWriter-${{ runner.os }}
+        path: |
+          ${{runner.workspace}}/build/include
+          ${{runner.workspace}}/build/lib
+          ${{runner.workspace}}/build/bin
+ 
+    - uses: actions/upload-artifact@v2
+      name: DLL Artifact
+      if: runner.os == 'Windows'
+      with:
+        name: DLLs-${{ runner.os }}
+        path: ${{runner.workspace}}/**/*.dll
+        
+    - name: Copy Minimal DLLs to One Folder
+      if: runner.os == 'Windows'
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: |
+        shopt -s globstar
+        mkdir dlls
+        cp build/bin/bpImarisWriter96.dll dlls
+        cp zlib/install/**/zlib.dll dlls
+        cp hdf5/install/**/hdf5.dll dlls
+        ls dlls
+        
+    - uses: actions/upload-artifact@v2
+      name: Minimal DLL Artifact
+      if: runner.os == 'Windows'
+      with:
+        name: Minimal_DLLs-${{ runner.os }}
+        path: ${{runner.workspace}}/dlls
