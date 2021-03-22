@@ -65,12 +65,12 @@ struct bpVector3Float : public bpFloatVec3
 {
 public:
   bpVector3Float()
-    : bpFloatVec3{ 0, 0, 0 }
+    : bpFloatVec3{ { 0, 0, 0 } }
   {
   }
 
   bpVector3Float(bpFloat aX, bpFloat aY, bpFloat aZ)
-    : bpFloatVec3{ aX, aY, aZ }
+    : bpFloatVec3{ { aX, aY, aZ } }
   {
   }
 };
@@ -264,7 +264,7 @@ namespace bpConverterTypes
   {
     bpSize mThumbnailSizeXY = 256;
     bool mForceFileBlockSizeZ1 = false;
-    bpBoolVec3 mFlipDimensionXYZ{ false, false, false };
+    bpBoolVec3 mFlipDimensionXYZ{ { false, false, false } };
     bool mEnableLogProgress = false;
     bpSize mNumberOfThreads = 8;
     tCompressionAlgorithmType mCompressionAlgorithmType = eCompressionAlgorithmGzipLevel2;
