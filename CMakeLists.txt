@@ -21,7 +21,7 @@ file(GLOB SRCS c/*.cxx writer/*.cxx)
 add_definitions(-D_HDF5USEDLL_ -DH5_BUILT_AS_DYNAMIC_LIB)
 add_definitions(-D_SBCS -D_SCL_SECURE_NO_WARNINGS)
 
-if(CMAKE_SYSTEM_NAME MATCHES Windows)
+if(CMAKE_SYSTEM_NAME MATCHES Windows AND CMAKE_CXX_COMPILER_ID EQUAL MSVC)
     set(CMAKE_CXX_FLAGS "-Zm200 /EHsc /bigobj -w44101 -w44244 -w44267 -w34062 -w34263 -w34265 -w34287 -w34289 -w34296 -w34431 -w34057 -w34092 -w34131 -w34132 -w34189 -w34202 -w34208 -w34245 -w34268 -w34295 -w34389 -w34456 -w34457 -w34505 -w34515 -w34516" CACHE INTERNAL "")
 endif()
 
@@ -31,13 +31,31 @@ if(NOT DEFINED CMAKE_MODULE_PATH)
 endif()
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
-find_package(HDF5 REQUIRED)
+find_package(HDF5)
 if(HDF5_FOUND)
     include_directories(${HDF5_INCLUDE_DIR})
     set(_hdf5_libs ${HDF5_LIBRARIES})
     message("Found HDF." + ${HDF5_INCLUDE_DIR} + "  " + ${HDF5_LIBRARIES})
 else()
-    message("Not found and not installing HDF.")
+    message("Not found and not installing HDF. Attempt to salvage:")
+    if(HDF5_INCLUDE_DIR)
+        include_directories(${HDF5_INCLUDE_DIR})
+        message("Found HDF5 Include: " ${HDF5_INCLUDE_DIR})
+    elseif(HDF5_FALLBACK_INCLUDE_DIR)
+        include_directories(${HDF5_FALLBACK_INCLUDE_DIR})
+        message("Using HDF5 Fallback Include: " ${HDF5_FALLBACK_INCLUDE_DIR})
+    else()
+        message(FATAL_ERROR "No HDF5_FALLBACK_INCLUDE_DIR")
+    endif()
+        
+    if(HDF5_LIBRARIES)
+        set(_hdf5_libs ${HDF5_LIBRARIES})
+    elseif(HDF5_FALLBACK_LIBRARIES)
+        set(_hdf5_libs ${HDF5_FALLBACK_LIBRARIES})
+        message("Using HDF5 Fallback libraries: " ${HDF5_FALLBACK_LIBRARIES})
+    else()
+        message(FATAL_ERROR "No HDF5_FALLBACK_LIBRARIES")
+    endif()
 endif()
 
 find_package(ZLIB REQUIRED)
@@ -71,15 +89,15 @@ target_link_libraries(${tgt} ${_hdf5_libs} ${ZLIB_LIBRARY} ${LZ4_LIBRARIES})
 
 message("Found build." + ${CMAKE_BINARY_DIR})
 if(${CMAKE_PROJECT_NAME} STREQUAL ImarisWriter)
-    install(FILES ${INTERFACE} DESTINATION ${CMAKE_BINARY_DIR}/include)
+    install(FILES ${INTERFACE} DESTINATION include)
     install (TARGETS bpImarisWriter96
-         ARCHIVE DESTINATION ${CMAKE_BINARY_DIR}/lib
-         LIBRARY DESTINATION ${CMAKE_BINARY_DIR}/lib
-         RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/bin)
+         ARCHIVE DESTINATION lib
+         LIBRARY DESTINATION lib
+         RUNTIME DESTINATION bin)
     
     install (TARGETS ImarisWriter_static
-         ARCHIVE DESTINATION ${CMAKE_BINARY_DIR}/lib
-         LIBRARY DESTINATION ${CMAKE_BINARY_DIR}/lib)    
+         ARCHIVE DESTINATION lib
+         LIBRARY DESTINATION lib)
 else()
     message("Not installing ImarisWriter libraries. CMAKE_PROJECT_NAME is ${CMAKE_PROJECT_NAME}")
 endif()
